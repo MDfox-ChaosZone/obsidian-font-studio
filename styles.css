@@ -1,0 +1,437 @@
+.fs-settings {
+    container-type: inline-size;
+}
+.fs-manager {
+    --fs-line: var(--background-modifier-border);
+    --fs-accent: var(--text-accent);
+    --fs-surface: var(--background-primary);
+    color: var(--text-normal);
+    font-family: var(--font-interface);
+    font-size: 13px;
+    line-height: 1.45;
+    padding: 2px 0 18px;
+}
+.fs-toolbar,
+.fs-extra,
+.fs-library-head,
+.fs-actions,
+.fs-card-head,
+.fs-reset,
+.fs-face,
+.fs-slider,
+.fs-subtabs,
+.fs-weight {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.fs-toolbar,
+.fs-library-head,
+.fs-actions,
+.fs-card-head {
+    flex-wrap: wrap;
+}
+.fs-toolbar {
+    margin: 0 0 13px;
+    row-gap: 8px;
+}
+.fs-toolbar > label,
+.fs-library-head > strong,
+.fs-card-head > strong {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-normal);
+}
+.fs-toolbar > label {
+    margin-right: 2px;
+}
+.fs-extra,
+.fs-actions {
+    margin-left: auto;
+    flex-wrap: wrap;
+}
+.fs-manager button,
+.fs-manager select,
+.fs-manager input:not([type="range"]):not([type="checkbox"]) {
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.3;
+}
+.fs-manager button,
+.fs-manager select {
+    height: 26px;
+    min-height: 26px;
+    border-radius: 4px;
+    box-shadow: none;
+}
+.fs-manager button {
+    padding: 2px 8px;
+    border: 1px solid var(--fs-line);
+    background: transparent;
+    color: var(--text-normal);
+}
+.fs-manager button:not(:disabled):hover,
+.fs-picker .fs-option:hover {
+    background: var(--background-modifier-hover);
+}
+.fs-toolbar > button,
+.fs-actions > button,
+.fs-manager .fs-select {
+    color: var(--fs-accent);
+    border-color: color-mix(in srgb, var(--fs-accent) 49%, var(--fs-line));
+}
+.fs-manager button.fs-danger {
+    color: var(--text-error);
+    border-color: color-mix(in srgb, var(--text-error) 50%, var(--fs-line));
+}
+.fs-manager button:disabled {
+    color: var(--text-faint);
+    border-color: var(--fs-line);
+    opacity: 0.64;
+    cursor: default;
+}
+.fs-toolbar select {
+    min-width: 105px;
+    width: clamp(105px, 17cqw, 160px);
+    max-width: 100%;
+    background-color: var(--fs-surface);
+    border: 1px solid var(--fs-line);
+    padding-left: 8px;
+}
+.fs-group {
+    border: 1px solid var(--fs-line);
+    border-radius: 6px;
+    margin: 0 0 12px;
+    background: var(--fs-surface);
+}
+.fs-group > summary {
+    cursor: pointer;
+    min-height: 38px;
+    box-sizing: border-box;
+    padding: 9px 12px;
+    list-style-position: inside;
+    font-size: 13px;
+    font-weight: 600;
+    user-select: none;
+}
+.fs-group > summary::marker {
+    font-size: 10px;
+    color: var(--text-muted);
+}
+.fs-group[open] > summary {
+    border-bottom: 1px solid var(--fs-line);
+}
+.fs-grid {
+    padding: 10px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    align-items: start;
+}
+.fs-card {
+    min-width: 0;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: var(--background-primary-alt);
+    border: 1px solid var(--fs-line);
+    border-radius: 5px;
+}
+.fs-card-head {
+    min-height: 21px;
+    margin-bottom: 2px;
+    column-gap: 5px;
+    row-gap: 2px;
+}
+.fs-card-head small,
+.fs-split,
+.fs-weight,
+.fs-slider > span {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+.fs-split {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.fs-split input[type="checkbox"] {
+    margin: 0;
+    width: 13px;
+    height: 13px;
+}
+.fs-stack {
+    display: grid;
+    gap: 4px;
+}
+.fs-default,
+.fs-face {
+    padding: 4px 7px;
+    min-height: 27px;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    border: 1px solid var(--fs-line);
+    border-radius: 4px;
+    background: var(--background-primary);
+    font-size: 12px;
+}
+.fs-default {
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+}
+.fs-face > span {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.fs-manager button.fs-icon {
+    border: 0;
+    height: 22px;
+    min-height: 22px;
+    padding: 1px 2px;
+    color: var(--text-muted);
+}
+.fs-icon svg,
+.fs-select svg,
+.fs-info svg,
+.fs-option svg {
+    width: 13px;
+    height: 13px;
+    display: block;
+}
+.fs-manager .fs-select {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+.fs-slider {
+    margin: 3px 0 2px;
+    gap: 2px;
+    min-height: 22px;
+}
+.fs-slider input[type="range"] {
+    flex: 1;
+    min-width: 0;
+    width: 0;
+    margin: 0 5px 0 0;
+}
+.fs-manager .fs-slider .fs-size-number {
+    appearance: textfield;
+    width: 4ch;
+    min-width: 28px;
+    height: 23px;
+    padding: 0;
+    text-align: right;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+.fs-size-number::-webkit-inner-spin-button {
+    appearance: none;
+}
+.fs-manager .fs-size-number:focus {
+    outline: 1px solid var(--fs-accent);
+}
+.fs-reset button {
+    flex: 1;
+    min-width: 0;
+    color: var(--text-muted);
+}
+.fs-weight {
+    justify-content: space-between;
+}
+.fs-weight[hidden] {
+    display: none;
+}
+.fs-weight input {
+    width: 88px;
+    height: 23px;
+}
+.fs-subtabs button[aria-pressed="true"] {
+    color: var(--fs-accent);
+    background: var(--background-modifier-hover);
+}
+.fs-library {
+    border-top: 1px solid var(--fs-line);
+    margin-top: 20px;
+    padding-top: 15px;
+}
+.fs-library-head {
+    min-height: 30px;
+}
+.fs-info {
+    color: var(--text-muted);
+    cursor: help;
+}
+.fs-empty {
+    padding: 37px 0 10px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+.fs-library h3 {
+    margin: 16px 0 5px;
+    font-size: 14px;
+}
+.fs-library .setting-item {
+    padding: 5px 0;
+}
+.fs-specimen {
+    font-size: 18px;
+    margin: 3px 0 10px;
+}
+.fs-measure {
+    position: absolute !important;
+    visibility: hidden !important;
+    pointer-events: none;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    padding: 0 !important;
+}
+.fs-picker {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    z-index: var(--layer-popover);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    box-sizing: border-box;
+    padding: 7px;
+    background: var(--background-primary);
+    color: var(--text-normal);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    box-shadow: var(--shadow-s);
+    font: 13px var(--font-interface);
+}
+.fs-picker:not(:popover-open) {
+    display: none;
+}
+.fs-picker > input {
+    flex: none;
+    width: 100%;
+}
+.fs-picker-list {
+    overflow: auto;
+    overscroll-behavior: contain;
+}
+.fs-picker-label {
+    padding: 5px;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+.fs-picker .fs-option {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+    height: auto;
+    min-height: 27px;
+    text-align: left;
+    justify-content: flex-start;
+    padding: 4px 6px;
+    background: transparent;
+    color: var(--text-normal);
+    box-shadow: none;
+    white-space: normal;
+}
+.fs-option[aria-pressed="true"] {
+    color: var(--text-accent);
+}
+.fs-name {
+    width: 100%;
+}
+.fs-preview {
+    font: var(--font-text-size) var(--font-text);
+}
+.fs-warning {
+    color: var(--text-warning);
+    font-size: 12px;
+}
+@container (max-width:560px) {
+    .fs-grid {
+        grid-template-columns: 1fr;
+    }
+    .fs-toolbar {
+        gap: 5px;
+    }
+    .fs-extra,
+    .fs-actions {
+        margin-left: 0;
+    }
+    .fs-library-head .fs-actions {
+        flex-wrap: wrap;
+    }
+    .fs-card {
+        padding: 11px;
+    }
+    .fs-toolbar select {
+        flex: 1;
+        max-width: 170px;
+    }
+}
+.is-mobile .fs-manager button,
+.is-mobile .fs-manager select {
+    min-height: 32px;
+    height: auto;
+}
+
+.vertical-tab-content.fs-settings {
+    padding-inline: clamp(14px, 2vw, 26px);
+}
+.fs-manager .fs-slider .fs-unit {
+    width: 35px;
+    min-width: 0;
+    height: 22px;
+    min-height: 22px;
+    border: 0;
+    padding: 0 10px 0 1px;
+    background-color: transparent;
+    color: var(--text-muted);
+    font-size: 11px;
+    background-position: right 0 center;
+    background-size: 9px;
+}
+.fs-manager .fs-slider .fs-size-number {
+    width: 5ch;
+}
+.fs-slider input[type="range"]::-webkit-slider-thumb {
+    height: 12px;
+    width: 12px;
+    background: var(--interactive-accent);
+    border-radius: 50%;
+    border: 0;
+    box-shadow:
+        0 0 0 2px var(--background-primary),
+        0 1px 3px var(--background-modifier-border);
+}
+
+.fs-picker-weight {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-top: 1px solid var(--background-modifier-border);
+    padding: 6px 3px 0;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+.fs-picker-weight input {
+    width: 80px;
+    height: 24px;
+}
+.fs-face[draggable="true"] {
+    cursor: grab;
+}

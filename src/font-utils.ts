@@ -1,0 +1,385 @@
+import { FontCoverage, FontVariationAxis, ImportedFont } from "./types";
+import { create as createFont } from "fontkit";
+
+export const SUPPORTED_EXTENSIONS = new Set(["woff2", "woff", "ttf", "otf"]);
+export const MAX_FONT_BYTES = 100 * 1024 * 1024;
+export const FONT_METADATA_VERSION = 1;
+export const EMOJI_UNICODE_RANGE = [
+    "U+231A-231B",
+    "U+23E9-23EC",
+    "U+23F0",
+    "U+23F3",
+    "U+25FD-25FE",
+    "U+2600-2604",
+    "U+2614-2615",
+    "U+2618",
+    "U+261D",
+    "U+2620",
+    "U+2622-2623",
+    "U+2626",
+    "U+262A",
+    "U+262E-262F",
+    "U+2638-263A",
+    "U+2640",
+    "U+2642",
+    "U+2648-2653",
+    "U+265F-2660",
+    "U+2663",
+    "U+2665-2666",
+    "U+2668",
+    "U+267B",
+    "U+267E-267F",
+    "U+2692-2697",
+    "U+2699",
+    "U+269B-269C",
+    "U+26A0-26A1",
+    "U+26A7",
+    "U+26AA-26AB",
+    "U+26B0-26B1",
+    "U+26BD-26BE",
+    "U+26C4-26C5",
+    "U+26C8",
+    "U+26CE-26CF",
+    "U+26D1",
+    "U+26D3-26D4",
+    "U+26E9-26EA",
+    "U+26F0-26F5",
+    "U+26F7-26FA",
+    "U+26FD",
+    "U+2702",
+    "U+2705",
+    "U+2708-270D",
+    "U+270F",
+    "U+2712",
+    "U+2714",
+    "U+2716",
+    "U+271D",
+    "U+2721",
+    "U+2728",
+    "U+2733-2734",
+    "U+2744",
+    "U+2747",
+    "U+274C",
+    "U+274E",
+    "U+2753-2755",
+    "U+2757",
+    "U+2763-2764",
+    "U+2795-2797",
+    "U+27A1",
+    "U+27B0",
+    "U+27BF",
+    "U+2B05-2B07",
+    "U+2B1B-2B1C",
+    "U+200D",
+    "U+2B50",
+    "U+2B55",
+    "U+3030",
+    "U+303D",
+    "U+3297",
+    "U+3299",
+    "U+FE0F",
+    "U+E0020-E007E",
+    "U+1F1E6-1F1FF",
+    "U+1F200-1F2FF",
+    "U+1F300-1F6FF",
+    "U+1F900-1FAFF",
+].join(", ");
+
+// The Emoji tag represents fonts that can replace the common face-style
+// emoji surfaced by SiYuan's `:keyword` picker. Unicode's broad Emoji
+// property also includes digits, enclosed ideographs, arrows, and symbols.
+const COMMON_EMOJI_FACES = new Set([
+    0x1f600, 0x1f601, 0x1f602, 0x1f603, 0x1f604, 0x1f605, 0x1f606, 0x1f607, 0x1f609, 0x1f60a, 0x1f60b,
+    0x1f60d, 0x1f618, 0x1f61c, 0x1f622, 0x1f62d, 0x1f631, 0x1f633, 0x1f642, 0x1f643, 0x1f923, 0x1f970,
+    0x1f972, 0x1f979,
+]);
+
+export interface FontMetadata {
+    metadataVersion: number;
+    fontName: string;
+    fontStyle: string;
+    fontWeight: number;
+    variationAxes: Record<string, FontVariationAxis>;
+    fontVersion: string;
+    coverage: FontCoverage;
+}
+
+export interface ImportedFontGroup {
+    key: string;
+    familyName: string;
+    fonts: ImportedFont[];
+}
+
+export function extractFontMetadata(buffer: ArrayBuffer, fallbackName: string): FontMetadata {
+    try {
+        const parsed = createFont(new Uint8Array(buffer)) as {
+            familyName?: string | null;
+            subfamilyName?: string | null;
+            fullName?: string | null;
+            postscriptName?: string | null;
+            version?: string | null;
+            characterSet?: number[];
+            name?: {
+                records?: {
+                    fontFamily?: Record<string, string | null | undefined>;
+                    preferredFamily?: Record<string, string | null | undefined>;
+                    fontSubfamily?: Record<string, string | null | undefined>;
+                    preferredSubfamily?: Record<string, string | null | undefined>;
+                };
+            };
+            "OS/2"?: { usWeightClass?: number };
+            variationAxes?: Record<string, { name?: string; min?: number; default?: number; max?: number }>;
+            directory?: {
+                tables?: Record<string, unknown>;
+            };
+        };
+        const fontStyle = localizedSubfamilyName(parsed) || cleanMetadata(parsed.subfamilyName) || "Regular";
+        const variationAxes = normalizeVariationAxes(parsed.variationAxes);
+        return {
+            metadataVersion: FONT_METADATA_VERSION,
+            fontName:
+                localizedFamilyName(parsed) ||
+                cleanMetadata(parsed.familyName || parsed.fullName || parsed.postscriptName) ||
+                fallbackName,
+            fontStyle,
+            fontWeight: normalizeFontWeight(parsed["OS/2"]?.usWeightClass, fontStyle),
+            variationAxes,
+            fontVersion: cleanMetadata(parsed.version) || "—",
+            coverage: detectFontCoverage(
+                parsed.characterSet || [],
+                hasColorEmojiTables(parsed.directory?.tables),
+            ),
+        };
+    } catch {
+        return {
+            metadataVersion: FONT_METADATA_VERSION,
+            fontName: fallbackName,
+            fontStyle: "Regular",
+            fontWeight: 400,
+            variationAxes: {},
+            fontVersion: "—",
+            coverage: { chinese: false, english: false, emoji: false, math: false },
+        };
+    }
+}
+
+function normalizeVariationAxes(
+    axes: Record<string, { name?: string; min?: number; default?: number; max?: number }> | undefined,
+): Record<string, FontVariationAxis> {
+    const normalized: Record<string, FontVariationAxis> = {};
+    for (const [tag, axis] of Object.entries(axes || {})) {
+        if (
+            ![axis.min, axis.default, axis.max].every(
+                (value) => typeof value === "number" && Number.isFinite(value),
+            )
+        )
+            continue;
+        normalized[tag] = { name: axis.name || tag, min: axis.min!, default: axis.default!, max: axis.max! };
+    }
+    return normalized;
+}
+
+export function detectFontCoverage(characterSet: readonly number[], hasColorEmoji = false): FontCoverage {
+    let chinese = false;
+    let english = false;
+    let commonEmojiFaces = 0;
+    let math = false;
+    for (const codePoint of characterSet) {
+        if (
+            !english &&
+            ((codePoint >= 0x41 && codePoint <= 0x5a) || (codePoint >= 0x61 && codePoint <= 0x7a))
+        ) {
+            english = true;
+        }
+        if (!chinese && isHanCodePoint(codePoint)) chinese = true;
+        if (COMMON_EMOJI_FACES.has(codePoint)) commonEmojiFaces++;
+        if (!math && isMathCodePoint(codePoint)) math = true;
+    }
+    const emoji = commonEmojiFaces >= (hasColorEmoji ? 8 : 12);
+    return { chinese, english, emoji, math };
+}
+
+function hasColorEmojiTables(tables: Record<string, unknown> | undefined): boolean {
+    return Boolean(
+        tables &&
+            (tables.sbix || (tables.COLR && tables.CPAL) || (tables.CBDT && tables.CBLC) || tables["SVG "]),
+    );
+}
+
+export function localizedFamilyName(parsed: {
+    name?: {
+        records?: {
+            fontFamily?: Record<string, string | null | undefined>;
+            preferredFamily?: Record<string, string | null | undefined>;
+        };
+    };
+}): string {
+    const records = parsed.name?.records;
+    return localizedRecordName(records?.preferredFamily || records?.fontFamily);
+}
+
+export function localizedSubfamilyName(parsed: {
+    name?: {
+        records?: {
+            fontSubfamily?: Record<string, string | null | undefined>;
+            preferredSubfamily?: Record<string, string | null | undefined>;
+        };
+    };
+}): string {
+    const records = parsed.name?.records;
+    return localizedRecordName(records?.preferredSubfamily || records?.fontSubfamily);
+}
+
+function localizedRecordName(names: Record<string, string | null | undefined> | undefined): string {
+    if (!names) return "";
+    for (const language of ["zh-Hans", "zh_CN", "zh-CN", "zh", "en"]) {
+        const name = cleanMetadata(names[language]);
+        if (name) return name;
+    }
+    return cleanMetadata(Object.values(names).find(Boolean));
+}
+
+function normalizeFontWeight(value: number | undefined, style: string): number {
+    if (typeof value === "number" && Number.isFinite(value) && value >= 1 && value <= 1000)
+        return Math.round(value);
+    const normalized = style.toLocaleLowerCase().replace(/[\s_-]/g, "");
+    if (/thin|hairline/.test(normalized)) return 100;
+    if (/extralight|ultralight/.test(normalized)) return 200;
+    if (/light/.test(normalized)) return 300;
+    if (/medium/.test(normalized)) return 500;
+    if (/semibold|demibold/.test(normalized)) return 600;
+    if (/extrabold|ultrabold/.test(normalized)) return 800;
+    if (/black|heavy/.test(normalized)) return 900;
+    if (/bold/.test(normalized)) return 700;
+    return 400;
+}
+
+function importedFamilyName(font: ImportedFont): string {
+    return (font.fontName || font.displayName).trim() || font.displayName;
+}
+
+function importedFamilyKey(font: ImportedFont): string {
+    return importedFamilyName(font).normalize("NFC").toLocaleLowerCase();
+}
+
+const isItalicFont = (font: ImportedFont) => /italic|oblique/i.test(font.fontStyle || "");
+
+// Picks the imported bold and italic faces that belong with `primary`. They are
+// registered under the primary's runtime family so that bold and italic text
+// uses real faces instead of synthesized ones.
+export function companionFonts(primary: ImportedFont, fonts: ImportedFont[]): ImportedFont[] {
+    if (isItalicFont(primary)) return [];
+    const key = importedFamilyKey(primary);
+    const siblings = fonts.filter((font) => font.id !== primary.id && importedFamilyKey(font) === key);
+    if (!siblings.length) return [];
+    const weightOf = (font: ImportedFont) => font.variationAxes?.wght?.default ?? font.fontWeight ?? 400;
+    const closest = (candidates: ImportedFont[], weight: number) =>
+        candidates.slice().sort((a, b) => Math.abs(weightOf(a) - weight) - Math.abs(weightOf(b) - weight))[0];
+    const variable = Boolean(primary.variationAxes?.wght);
+    const primaryWeight = weightOf(primary);
+    const needsBold = !variable && primaryWeight < 600;
+    const uprights = siblings.filter((font) => !isItalicFont(font));
+    const italics = siblings.filter(isItalicFont);
+    const result: ImportedFont[] = [];
+    const bold = needsBold
+        ? closest(
+              uprights.filter((font) => weightOf(font) >= 600),
+              700,
+          )
+        : undefined;
+    if (bold) result.push(bold);
+    const italic = closest(
+        italics.filter((font) => !needsBold || weightOf(font) < 600),
+        primaryWeight,
+    );
+    if (italic) result.push(italic);
+    const boldItalic = needsBold
+        ? closest(
+              italics.filter((font) => font !== italic && weightOf(font) >= 600),
+              700,
+          )
+        : undefined;
+    if (boldItalic) result.push(boldItalic);
+    return result;
+}
+
+export function groupImportedFonts(fonts: ImportedFont[]): ImportedFontGroup[] {
+    const groups = new Map<string, ImportedFontGroup>();
+    for (const font of fonts) {
+        const familyName = importedFamilyName(font);
+        const key = importedFamilyKey(font);
+        const group = groups.get(key);
+        if (group) group.fonts.push(font);
+        else groups.set(key, { key, familyName, fonts: [font] });
+    }
+    return Array.from(groups.values(), (group) => ({
+        ...group,
+        fonts: group.fonts
+            .map((font, index) => ({ font, index }))
+            .sort((a, b) => (a.font.fontWeight || 400) - (b.font.fontWeight || 400) || a.index - b.index)
+            .map(({ font }) => font),
+    }));
+}
+
+function isHanCodePoint(codePoint: number): boolean {
+    return (
+        codePoint === 0x3007 ||
+        (codePoint >= 0x3400 && codePoint <= 0x4dbf) ||
+        (codePoint >= 0x4e00 && codePoint <= 0x9fff) ||
+        (codePoint >= 0xf900 && codePoint <= 0xfaff) ||
+        (codePoint >= 0x20000 && codePoint <= 0x2ee5f) ||
+        (codePoint >= 0x2f800 && codePoint <= 0x2fa1f) ||
+        (codePoint >= 0x30000 && codePoint <= 0x323af)
+    );
+}
+
+function isMathCodePoint(codePoint: number): boolean {
+    return (
+        (codePoint >= 0x2200 && codePoint <= 0x22ff) ||
+        (codePoint >= 0x27c0 && codePoint <= 0x27ef) ||
+        (codePoint >= 0x2980 && codePoint <= 0x29ff) ||
+        (codePoint >= 0x2a00 && codePoint <= 0x2aff) ||
+        (codePoint >= 0x1d400 && codePoint <= 0x1d7ff)
+    );
+}
+
+function cleanMetadata(value: string | null | undefined): string {
+    return (value || "").replace(/\0/g, "").trim();
+}
+
+export function extensionOf(filename: string): string {
+    const index = filename.lastIndexOf(".");
+    return index < 0 ? "" : filename.slice(index + 1).toLowerCase();
+}
+
+export function nameWithoutExtension(filename: string): string {
+    const index = filename.lastIndexOf(".");
+    return (index < 1 ? filename : filename.slice(0, index)).trim() || "Unnamed font";
+}
+
+export async function sha256(buffer: ArrayBuffer): Promise<string> {
+    const digest = await crypto.subtle.digest("SHA-256", buffer);
+    return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export function runtimeFamily(id: string): string {
+    return `FS_${id.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+}
+
+export function quoteFamily(family: string): string {
+    // Family names can come from imported preset files; a raw newline would end the CSS string.
+    return `"${family
+        .replace(/[\u0000-\u001f\u007f]/g, " ")
+        .replace(/\\/g, "\\\\")
+        .replace(/"/g, '\\"')}"`;
+}
+
+export function createId(): string {
+    return typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+export function hasDuplicateHash(fonts: Pick<ImportedFont, "sha256">[], hash: string): boolean {
+    return fonts.some((font) => font.sha256 === hash);
+}

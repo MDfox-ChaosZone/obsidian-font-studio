@@ -1,0 +1,10 @@
+{
+    "id": "font-studio",
+    "name": "Font Studio",
+    "version": "1.1.1",
+    "minAppVersion": "1.8.7",
+    "description": "Pair fonts, tune typography for notes and Canvas, and switch between portable presets.",
+    "author": "MDfox",
+    "authorUrl": "https://github.com/MDfox-ChaosZone",
+    "isDesktopOnly": false
+}
